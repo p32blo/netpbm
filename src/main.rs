@@ -11,11 +11,9 @@ fn main() {
 	let _exec = args.next();
 
 	for arg in args {
-
-		if let Ok(()) = load_img(&arg) {
-	    	println!("Load image {:?}", arg);
-		} else {
-			println!("warn: file {} not exits", arg);
+		match load_img(&arg) {
+			Ok(_) => println!("Load image {:?}...", arg),
+			Err(_) => println!("warn: file {:?} does not exist", arg)
 		}
 	}
 }
