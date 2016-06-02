@@ -42,5 +42,34 @@ fn load_img(filename: &str) -> Result<(), io::Error>
 		}
 	}
 
+	let (hash, number) = split.next().unwrap().split_at(1);
+
+	let iters: usize = number.parse().unwrap();
+
+	if hash != "#" {
+		return Err(Error::new(ErrorKind::InvalidData, "File does not have required metadata"));
+	}
+
+	let size_x: usize = split.next().unwrap().parse().unwrap();
+	let size_y: usize = split.next().unwrap().parse().unwrap();
+	let max_val: usize = split.next().unwrap().parse().unwrap();
+
+	println!("debug: iters = {:?}, {:?}", hash, iters);
+	println!("debug: size_x = {:?}", size_x);
+	println!("debug: size_y = {:?}", size_y);
+	println!("debug: max_val = {:?}", max_val);
+
+	let img_size = size_x * size_y;
+	let img_rgb_size = img_size * 3;
+
+	let mut img = vec![0; img_rgb_size];
+
+	for (i, word) in split.enumerate() {
+		img[i] = word.parse().unwrap();
+//		println!("debug: {}, {:?}, {}", i, word, img[i]);
+	}
+
+	println!("debug: vec_size = {}", img.len());
+
 	Ok(())
 }
