@@ -4,7 +4,7 @@ use std::env;
 use std::fs::File;
 
 use std::io;
-use std::io::{Read, Error, ErrorKind};
+use std::io::{Read, Write, Error, ErrorKind};
 
 
 #[derive(Default)]
@@ -28,7 +28,8 @@ fn main() {
 		match Image::open(&arg) {
 			Ok(img) => {
 				image = img;
-				println!("Load image {:?}...", arg);
+				println!("reading: {} [ {}, {} ] iters: {}",
+							arg, image.size_x, image.size_y, image.iters);
 				break;
 			},
 			Err(e) => handle_error(e, &arg)
@@ -37,11 +38,22 @@ fn main() {
 
 	for arg in args {
 		match image.add(&arg) {
-			Ok(_) => println!("Load image {:?}...", arg),
+			Ok(img) => {
+				println!("reading: {} [ {}, {} ] iters: {}",
+							arg, img.size_x, img.size_y,	img.iters);
+			}
 			Err(e) => handle_error(e, &arg)
 		}
 	}
 
+	image.divide();
+
+	let out = "final.ppm";
+
+	println!("writing: {} [ {}, {} ] iters: {}",
+				out, image.size_x, image.size_y, image.iters);
+
+	image.save(out).unwrap();
 
 }
 
@@ -57,7 +69,7 @@ impl Image {
 
 	fn new() -> Self { Image::default() }
 
-	fn open(filename: &str) -> Result<Self, io::Error>
+	fn open(filename: &str) -> io::Result<Self>
 	{
 		let (mut image, content) = try!(Self::read_metadata(filename));
 
@@ -73,17 +85,14 @@ impl Image {
 		for (i, word) in split.enumerate() {
 			let val: usize = word.parse().unwrap();
 			img[i] = val * image.iters;
-	//		println!("debug: {}, {:?}, {}", i, word, img[i]);
 		}
-
-		println!("debug: vec_size = {} / {}", img.len(), img_rgb_size);
 
 		image.data = img;
 
 		Ok(image)
 	}
 
-	fn read_metadata(filename: &str) -> Result<(Self, String), io::Error>
+	fn read_metadata(filename: &str) -> io::Result<(Self, String)>
 	{
 		let mut file = try!(File::open(filename));
 
@@ -116,10 +125,10 @@ impl Image {
 			size_y = split.next().unwrap().parse().unwrap();
 			max_val = split.next().unwrap().parse().unwrap();
 
-			println!("debug: iters = {:?}, {:?}", hash, iters);
-			println!("debug: size_x = {:?}", size_x);
-			println!("debug: size_y = {:?}", size_y);
-			println!("debug: max_val = {:?}", max_val);
+//			println!("debug: iters = {:?}, {:?}", hash, iters);
+//			println!("debug: size_x = {:?}", size_x);
+//			println!("debug: size_y = {:?}", size_y);
+//			println!("debug: max_val = {:?}", max_val);
 		}
 
 		Ok((Image {
@@ -131,7 +140,7 @@ impl Image {
 		}, content))
 	}
 
-	fn add(&mut self, filename: &str) -> Result<(), io::Error>
+	fn add(&mut self, filename: &str) -> io::Result<Self>
 	{
 		let (image, content) = try!(Self::read_metadata(filename));
 
@@ -142,8 +151,35 @@ impl Image {
 		for (i, word) in split.enumerate() {
 			let val: usize = word.parse().unwrap();
 			self.data[i] += val * image.iters;
-			//println!("debug: {}, {:?}, {}", i, word, self.data[i]);
 		}
+
+		self.iters += image.iters;
+
+		Ok(image)
+	}
+
+	fn divide (&mut self)
+	{
+		for val in self.data.iter_mut() {
+			*val = *val / self.iters;
+		}
+	}
+
+	fn save(&self, filename: &str) -> io::Result<()>
+	{
+		let mut file = try!(File::create(filename));
+
+		let mut res = String::with_capacity(self.size_x * self.size_y * 3 * 4);
+
+		res.push_str("P3\n");
+		res.push_str(&format!("#{}\n", self.iters));
+		res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
+
+		for val in self.data.iter(){
+			res.push_str(&format!("{} ", val));
+		}
+
+		try!(file.write_all(res.as_bytes()));
 
 		Ok(())
 	}
