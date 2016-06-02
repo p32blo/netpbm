@@ -28,7 +28,7 @@ fn main() {
 		match Image::open(&arg) {
 			Ok(img) => {
 				image = img;
-				println!("reading: {} [ {}, {} ] iters: {}",
+				println!("reading: {} [ {} x {} ] iters = {}",
 							arg, image.size_x, image.size_y, image.iters);
 				break;
 			},
@@ -39,7 +39,7 @@ fn main() {
 	for arg in args {
 		match image.add(&arg) {
 			Ok(img) => {
-				println!("reading: {} [ {}, {} ] iters: {}",
+				println!("reading: {} [ {} x {} ] iters = {}",
 							arg, img.size_x, img.size_y,	img.iters);
 			}
 			Err(e) => handle_error(e, &arg)
@@ -51,7 +51,7 @@ fn main() {
 		image.divide();
 
 		let out = "final.ppm";
-		println!("writing: {} [ {}, {} ] iters: {}",
+		println!("writing: {} [ {} x {} ] iters = {}",
 					out, image.size_x, image.size_y, image.iters);
 
 		image.save(out).unwrap();
