@@ -46,15 +46,16 @@ fn main() {
 		}
 	}
 
-	image.divide();
+	if !image.is_empty() {
 
-	let out = "final.ppm";
+		image.divide();
 
-	println!("writing: {} [ {}, {} ] iters: {}",
-				out, image.size_x, image.size_y, image.iters);
+		let out = "final.ppm";
+		println!("writing: {} [ {}, {} ] iters: {}",
+					out, image.size_x, image.size_y, image.iters);
 
-	image.save(out).unwrap();
-
+		image.save(out).unwrap();
+	}
 }
 
 fn handle_error(e: io::Error, arg: &str)
@@ -68,6 +69,8 @@ fn handle_error(e: io::Error, arg: &str)
 impl Image {
 
 	fn new() -> Self { Image::default() }
+
+	fn is_empty(&self) -> bool { self.data.is_empty() }
 
 	fn open(filename: &str) -> io::Result<Self>
 	{
