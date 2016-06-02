@@ -160,8 +160,8 @@ impl Image {
 
 	fn divide (&mut self)
 	{
-		for val in self.data.iter_mut() {
-			*val = *val / self.iters;
+		for val in &mut self.data {
+			*val /= self.iters;
 		}
 	}
 
@@ -175,7 +175,7 @@ impl Image {
 		res.push_str(&format!("#{}\n", self.iters));
 		res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
 
-		for val in self.data.iter(){
+		for val in &self.data {
 			res.push_str(&format!("{} ", val));
 		}
 
