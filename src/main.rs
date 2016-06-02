@@ -6,6 +6,13 @@ use std::fs::File;
 use std::io;
 use std::io::{Read, Error, ErrorKind};
 
+struct Image {
+	iters : usize,
+	size_x : usize,
+	size_y : usize,
+	max_val : usize,
+	data : Vec<usize>
+}
 
 fn main() {
 
@@ -14,7 +21,9 @@ fn main() {
 	let _exec = args.next();
 
 	for arg in args {
-		match load_img(&arg) {
+
+
+		match Image::open(&arg) {
 			Ok(_) => println!("Load image {:?}...", arg),
 			Err(e) => {
 				match e.kind() {
@@ -26,50 +35,58 @@ fn main() {
 	}
 }
 
-fn load_img(filename: &str) -> Result<(), io::Error>
-{
-	let mut file = try!(File::open(filename));
+impl Image {
+	fn open(filename: &str) -> Result<Self, io::Error>
+	{
+		let mut file = try!(File::open(filename));
 
-	let mut content = String::new();
-	try!(file.read_to_string(&mut content));
+		let mut content = String::new();
+		try!(file.read_to_string(&mut content));
 
-	let mut split = content.split_whitespace();
+		let mut split = content.split_whitespace();
 
-
-	if let Some(val) = split.next() {
-		if val != "P3" {
-			return Err(Error::new(ErrorKind::InvalidData, "File does not contain 'P3' tag"));
+		if let Some(val) = split.next() {
+			if val != "P3" {
+				return Err(Error::new(ErrorKind::InvalidData, "File does not contain 'P3' tag"));
+			}
 		}
+
+		let (hash, number) = split.next().unwrap().split_at(1);
+
+		let iters: usize = number.parse().unwrap();
+
+		if hash != "#" {
+			return Err(Error::new(ErrorKind::InvalidData, "File does not have required metadata"));
+		}
+
+		let size_x: usize = split.next().unwrap().parse().unwrap();
+		let size_y: usize = split.next().unwrap().parse().unwrap();
+		let max_val: usize = split.next().unwrap().parse().unwrap();
+
+		println!("debug: iters = {:?}, {:?}", hash, iters);
+		println!("debug: size_x = {:?}", size_x);
+		println!("debug: size_y = {:?}", size_y);
+		println!("debug: max_val = {:?}", max_val);
+
+		let img_size = size_x * size_y;
+		let img_rgb_size = img_size * 3;
+
+		let mut img = vec![0; img_rgb_size];
+
+		for (i, word) in split.enumerate() {
+			img[i] = word.parse().unwrap();
+	//		println!("debug: {}, {:?}, {}", i, word, img[i]);
+		}
+
+		println!("debug: vec_size = {}", img.len());
+
+		Ok(Image {
+			iters: iters,
+			size_x: size_x,
+			size_y: size_y,
+			max_val: max_val,
+			data: img
+		})
 	}
-
-	let (hash, number) = split.next().unwrap().split_at(1);
-
-	let iters: usize = number.parse().unwrap();
-
-	if hash != "#" {
-		return Err(Error::new(ErrorKind::InvalidData, "File does not have required metadata"));
-	}
-
-	let size_x: usize = split.next().unwrap().parse().unwrap();
-	let size_y: usize = split.next().unwrap().parse().unwrap();
-	let max_val: usize = split.next().unwrap().parse().unwrap();
-
-	println!("debug: iters = {:?}, {:?}", hash, iters);
-	println!("debug: size_x = {:?}", size_x);
-	println!("debug: size_y = {:?}", size_y);
-	println!("debug: max_val = {:?}", max_val);
-
-	let img_size = size_x * size_y;
-	let img_rgb_size = img_size * 3;
-
-	let mut img = vec![0; img_rgb_size];
-
-	for (i, word) in split.enumerate() {
-		img[i] = word.parse().unwrap();
-//		println!("debug: {}, {:?}, {}", i, word, img[i]);
-	}
-
-	println!("debug: vec_size = {}", img.len());
-
-	Ok(())
 }
+
