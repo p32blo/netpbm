@@ -31,29 +31,26 @@ fn main() {
 				println!("Load image {:?}...", arg);
 				break;
 			},
-			Err(e) => {
-				match e.kind() {
-					ErrorKind::InvalidData =>
-						println!("warn: file {:?} is not a netpbm file", arg),
-					_ => println!("warn: file {:?} does not exist", arg)
-				}
-			}
+			Err(e) => handle_error(e, &arg)
 		}
 	}
 
 	for arg in args {
 		match image.add(&arg) {
 			Ok(_) => println!("Load image {:?}...", arg),
-			Err(e) => {
-				match e.kind() {
-					ErrorKind::InvalidData => println!("warn: file {:?} is not a netpbm file", arg),
-					_ => println!("warn: file {:?} does not exist", arg)
-				}
-			}
+			Err(e) => handle_error(e, &arg)
 		}
 	}
 
 
+}
+
+fn handle_error(e: io::Error, arg: &str)
+{
+	match e.kind() {
+		ErrorKind::InvalidData => println!("warn: file {:?} is not a netpbm file", arg),
+		_ => println!("warn: file {:?} does not exist", arg)
+	}
 }
 
 impl Image {
@@ -141,8 +138,6 @@ impl Image {
 		let mut split = content.split_whitespace();
 
 		let _metadata = split.nth(4);
-
-		println!("test: {:?}", _metadata);
 
 		for (i, word) in split.enumerate() {
 			let val: usize = word.parse().unwrap();
