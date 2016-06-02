@@ -36,7 +36,7 @@ fn main() {
 		}
 	}
 
-	for arg in args {
+	for arg in &mut args {
 		match image.add(&arg) {
 			Ok(img) => {
 				println!("reading: {} [ {} x {} ] iters = {}",
