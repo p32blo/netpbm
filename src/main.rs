@@ -54,15 +54,15 @@ fn main() {
 
     if !image.is_empty() {
 
-        image.divide();
+        let out = "output.ppm";
 
-        let out = "final.ppm";
         println!("writing: {} [ {} x {} ] iters = {}",
                  out,
                  image.size_x,
                  image.size_y,
                  image.iters);
 
+        image.divide();
         image.save(out).unwrap();
     }
 }
