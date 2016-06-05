@@ -64,10 +64,10 @@ impl Image {
             size_y = split.next().unwrap().parse().unwrap();
             max_val = split.next().unwrap().parse().unwrap();
 
-            // 			println!("debug: iters = {:?}, {:?}", hash, iters);
-            // 			println!("debug: size_x = {:?}", size_x);
-            // 			println!("debug: size_y = {:?}", size_y);
-            // 			println!("debug: max_val = {:?}", max_val);
+            // println!("debug: iters = {:?}, {:?}", hash, iters);
+            // println!("debug: size_x = {:?}", size_x);
+            // println!("debug: size_y = {:?}", size_y);
+            // println!("debug: max_val = {:?}", max_val);
         }
 
         Ok(Image {
@@ -128,8 +128,18 @@ impl Image {
         res.push_str(&format!("#{}\n", self.iters));
         res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
 
-        for val in &self.data {
-            res.push_str(&format!("{} ", val / self.iters as u32));
+        let mut iter = self.data.iter();
+
+        for _ in 0..self.size_y {
+            for _ in 0..self.size_x {
+                let (r, g, b) = (iter.next().unwrap() / self.iters as u32,
+                                 iter.next().unwrap() / self.iters as u32,
+                                 iter.next().unwrap() / self.iters as u32);
+
+                res.push_str(&format!("{} {} {} ", r, g, b));
+            }
+            res.pop();
+            res.push('\n');
         }
 
         try!(file.write_all(res.as_bytes()));
