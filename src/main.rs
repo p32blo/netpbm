@@ -60,7 +60,6 @@ fn main() {
                  image.size_y,
                  image.iters);
 
-        image.divide();
         image.save(out).unwrap();
     }
 }
@@ -177,12 +176,6 @@ impl Image {
         Ok(image)
     }
 
-    fn divide(&mut self) {
-        for val in &mut self.data {
-            *val /= self.iters;
-        }
-    }
-
     fn save(&self, filename: &str) -> io::Result<()> {
 
         let mut file = try!(File::create(filename));
@@ -194,7 +187,7 @@ impl Image {
         res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
 
         for val in &self.data {
-            res.push_str(&format!("{} ", val));
+            res.push_str(&format!("{} ", val / self.iters));
         }
 
         try!(file.write_all(res.as_bytes()));
