@@ -18,9 +18,7 @@ struct Image {
 
 fn main() {
 
-    let mut args = env::args();
-
-    let _exec = args.next();
+    let mut args = env::args().skip(1);
 
     let mut image = Image::new();
 
