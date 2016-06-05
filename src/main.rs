@@ -69,8 +69,8 @@ fn main() {
 
 fn handle_error(e: io::Error, arg: &str) {
     match e.kind() {
-        ErrorKind::InvalidData => println!("warn: file {:?} is not a netpbm file", arg),
-        _ => println!("warn: file {:?} does not exist", arg),
+        ErrorKind::InvalidData => println!("warn: file '{}' is not a netpbm file", arg),
+        _ => println!("warn: file '{}' does not exist", arg),
     }
 }
 
