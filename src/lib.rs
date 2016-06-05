@@ -90,14 +90,12 @@ impl Image {
         let img_size = image.size_x * image.size_y;
         let img_rgb_size = img_size * 3;
 
-        let mut data = vec![0; img_rgb_size];
+        image.data.reserve(img_rgb_size);
 
-        for (i, word) in split.enumerate() {
+        for word in split {
             let val: u32 = word.parse().unwrap();
-            data[i] = val * image.iters as u32;
+            image.data.push(val * image.iters as u32);
         }
-
-        image.data = data;
 
         Ok(image)
     }
@@ -110,9 +108,9 @@ impl Image {
         // skip metadata
         let split = content.split_whitespace().skip(5);
 
-        for (i, word) in split.enumerate() {
+        for (word, item) in split.zip(self.data.iter_mut()) {
             let val: u32 = word.parse().unwrap();
-            self.data[i] += val * image.iters as u32;
+            *item += val * image.iters as u32;
         }
 
         self.iters += image.iters;
