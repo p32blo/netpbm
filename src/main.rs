@@ -13,7 +13,7 @@ struct Image {
     size_x: usize,
     size_y: usize,
     max_val: usize,
-    data: Vec<usize>,
+    data: Vec<u32>,
 }
 
 fn main() {
@@ -149,8 +149,8 @@ impl Image {
         let mut data = vec![0; img_rgb_size];
 
         for (i, word) in split.enumerate() {
-            let val: usize = word.parse().unwrap();
-            data[i] = val * image.iters;
+            let val: u32 = word.parse().unwrap();
+            data[i] = val * image.iters as u32;
         }
 
         image.data = data;
@@ -167,8 +167,8 @@ impl Image {
         let split = content.split_whitespace().skip(5);
 
         for (i, word) in split.enumerate() {
-            let val: usize = word.parse().unwrap();
-            self.data[i] += val * image.iters;
+            let val: u32 = word.parse().unwrap();
+            self.data[i] += val * image.iters as u32;
         }
 
         self.iters += image.iters;
@@ -187,7 +187,7 @@ impl Image {
         res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
 
         for val in &self.data {
-            res.push_str(&format!("{} ", val / self.iters));
+            res.push_str(&format!("{} ", val / self.iters as u32));
         }
 
         try!(file.write_all(res.as_bytes()));
