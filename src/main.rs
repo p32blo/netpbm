@@ -83,33 +83,39 @@ impl Image {
         self.data.is_empty()
     }
 
-    fn open(filename: &str) -> io::Result<Self> {
-        let (mut image, content) = try!(Self::read_metadata(filename));
-
-        let mut split = content.split_whitespace();
-
-        let _metadata = split.nth(4);
-
-        let img_size = image.size_x * image.size_y;
-        let img_rgb_size = img_size * 3;
-
-        let mut img = vec![0; img_rgb_size];
-
-        for (i, word) in split.enumerate() {
-            let val: usize = word.parse().unwrap();
-            img[i] = val * image.iters;
-        }
-
-        image.data = img;
-
-        Ok(image)
-    }
-
-    fn read_metadata(filename: &str) -> io::Result<(Self, String)> {
+    fn get_file_content(filename: &str) -> io::Result<String> {
         let mut file = try!(File::open(filename));
 
         let mut content = String::new();
         try!(file.read_to_string(&mut content));
+
+        Ok(content)
+    }
+
+    fn open(filename: &str) -> io::Result<Self> {
+
+        let content = try!(Self::get_file_content(filename));
+        let mut image = try!(Self::load_metadata(&content));
+
+        // skip metadata
+        let split = content.split_whitespace().skip(5);
+
+        let img_size = image.size_x * image.size_y;
+        let img_rgb_size = img_size * 3;
+
+        let mut data = vec![0; img_rgb_size];
+
+        for (i, word) in split.enumerate() {
+            let val: usize = word.parse().unwrap();
+            data[i] = val * image.iters;
+        }
+
+        image.data = data;
+
+        Ok(image)
+    }
+
+    fn load_metadata(content: &str) -> io::Result<Self> {
 
         let iters: usize;
         let size_x: usize;
@@ -145,22 +151,22 @@ impl Image {
             // 			println!("debug: max_val = {:?}", max_val);
         }
 
-        Ok((Image {
+        Ok(Image {
             iters: iters,
             size_x: size_x,
             size_y: size_y,
             max_val: max_val,
             data: Vec::default(),
-        },
-            content))
+        })
     }
 
     fn add(&mut self, filename: &str) -> io::Result<Self> {
-        let (image, content) = try!(Self::read_metadata(filename));
 
-        let mut split = content.split_whitespace();
+        let content = try!(Self::get_file_content(filename));
+        let image = try!(Self::load_metadata(&content));
 
-        let _metadata = split.nth(4);
+        // skip metadata
+        let split = content.split_whitespace().skip(5);
 
         for (i, word) in split.enumerate() {
             let val: usize = word.parse().unwrap();
