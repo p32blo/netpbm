@@ -1,5 +1,6 @@
 
 extern crate netpbm;
+extern crate getopts;
 
 use netpbm::Image;
 
@@ -8,12 +9,42 @@ use std::io;
 
 fn main() {
 
-    let mut args = env::args().skip(1);
+    // Argument Parsing
+
+    let mut opts = getopts::Options::new();
+
+    let mut args = env::args();
+    let prog = &mut args.next().unwrap();
+
+    opts.optopt("o", "output", "Set custom Output filename", "FILE");
+    opts.optflag("h", "help", "Print this help menu");
+
+    let matches = match opts.parse(args.collect::<Vec<String>>()) {
+        Ok(m) => m,
+        Err(f) => {
+            println!("{}", f);
+            return;
+        }
+    };
+
+    if matches.opt_present("h") {
+        println!("{}", opts.usage(&opts.short_usage(prog)));
+        return;
+    }
+
+    let output = match matches.opt_str("o") {
+        Some(filename) => filename,
+        None => "output.ppm".into(),
+    };
+
+    let mut files = matches.free.iter();
+
+    // Image Loading
 
     let mut image = Image::new();
 
-    for arg in &mut args {
-        match Image::open(&arg) {
+    for arg in &mut files {
+        match Image::open(arg) {
             Ok(img) => {
                 image = img;
                 println!("reading: {} [ {} x {} ] iters = {}",
@@ -23,12 +54,12 @@ fn main() {
                          image.iters);
                 break;
             }
-            Err(e) => handle_error(e, &arg),
+            Err(e) => handle_error(e, arg),
         }
     }
 
-    for arg in &mut args {
-        match image.add(&arg) {
+    for arg in &mut files {
+        match image.add(arg) {
             Ok(img) => {
                 println!("reading: {} [ {} x {} ] iters = {}",
                          arg,
@@ -36,21 +67,18 @@ fn main() {
                          img.size_y,
                          img.iters);
             }
-            Err(e) => handle_error(e, &arg),
+            Err(e) => handle_error(e, arg),
         }
     }
 
     if !image.is_empty() {
-
-        let out = "output.ppm";
-
         println!("writing: {} [ {} x {} ] iters = {}",
-                 out,
+                 output,
                  image.size_x,
                  image.size_y,
                  image.iters);
 
-        image.save(out).unwrap();
+        image.save(&output).unwrap();
     }
 }
 

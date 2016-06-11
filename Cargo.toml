@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["André Oliveira <p32blo@gmail.com>"]
 
 [dependencies]
+getopts = "0.2"
