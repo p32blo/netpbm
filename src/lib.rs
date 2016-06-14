@@ -8,8 +8,8 @@ use std::io::{Read, Write, Error, ErrorKind};
 #[derive(Default)]
 pub struct Image {
     pub iters: usize,
-    pub size_x: usize,
-    pub size_y: usize,
+    pub width: usize,
+    pub height: usize,
     pub max_val: usize,
     pub data: Vec<u32>,
 }
@@ -37,8 +37,8 @@ impl Image {
     fn load_metadata(content: &str) -> io::Result<Self> {
 
         let iters: usize;
-        let size_x: usize;
-        let size_y: usize;
+        let width: usize;
+        let height: usize;
         let max_val: usize;
 
         {
@@ -60,20 +60,20 @@ impl Image {
                                       "File does not have required metadata"));
             }
 
-            size_x = split.next().unwrap().parse().unwrap();
-            size_y = split.next().unwrap().parse().unwrap();
+            width = split.next().unwrap().parse().unwrap();
+            height = split.next().unwrap().parse().unwrap();
             max_val = split.next().unwrap().parse().unwrap();
 
             // println!("debug: iters = {:?}, {:?}", hash, iters);
-            // println!("debug: size_x = {:?}", size_x);
-            // println!("debug: size_y = {:?}", size_y);
+            // println!("debug: width = {:?}", width);
+            // println!("debug: height = {:?}", height);
             // println!("debug: max_val = {:?}", max_val);
         }
 
         Ok(Image {
             iters: iters,
-            size_x: size_x,
-            size_y: size_y,
+            width: width,
+            height: height,
             max_val: max_val,
             data: Vec::default(),
         })
@@ -87,7 +87,7 @@ impl Image {
         // skip metadata
         let split = content.split_whitespace().skip(5);
 
-        let img_size = image.size_x * image.size_y;
+        let img_size = image.width * image.height;
         let img_rgb_size = img_size * 3;
 
         image.data.reserve(img_rgb_size);
@@ -122,16 +122,16 @@ impl Image {
 
         let mut file = try!(File::create(filename));
 
-        let mut res = String::with_capacity(self.size_x * self.size_y * 3 * 4);
+        let mut res = String::with_capacity(self.width * self.height * 3 * 4);
 
         res.push_str("P3\n");
         res.push_str(&format!("#{}\n", self.iters));
-        res.push_str(&format!("{} {} {}\n", self.size_x, self.size_y, self.max_val));
+        res.push_str(&format!("{} {} {}\n", self.width, self.height, self.max_val));
 
         let mut iter = self.data.iter();
 
-        for _ in 0..self.size_y {
-            for _ in 0..self.size_x {
+        for _ in 0..self.height {
+            for _ in 0..self.width {
                 let (r, g, b) = (iter.next().unwrap() / self.iters as u32,
                                  iter.next().unwrap() / self.iters as u32,
                                  iter.next().unwrap() / self.iters as u32);

@@ -49,8 +49,8 @@ fn main() {
                 image = img;
                 println!("reading: {} [ {} x {} ] iters = {}",
                          arg,
-                         image.size_x,
-                         image.size_y,
+                         image.width,
+                         image.height,
                          image.iters);
                 break;
             }
@@ -63,8 +63,8 @@ fn main() {
             Ok(img) => {
                 println!("reading: {} [ {} x {} ] iters = {}",
                          arg,
-                         img.size_x,
-                         img.size_y,
+                         img.width,
+                         img.height,
                          img.iters);
             }
             Err(e) => handle_error(e, arg),
@@ -74,8 +74,8 @@ fn main() {
     if !image.is_empty() {
         println!("writing: {} [ {} x {} ] iters = {}",
                  output,
-                 image.size_x,
-                 image.size_y,
+                 image.width,
+                 image.height,
                  image.iters);
 
         image.save(&output).unwrap();
