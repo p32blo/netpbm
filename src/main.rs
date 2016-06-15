@@ -1,3 +1,6 @@
+//!
+//! Exemple project for the `netpbm` crate
+//!
 
 extern crate netpbm;
 extern crate getopts;

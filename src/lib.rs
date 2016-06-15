@@ -1,25 +1,56 @@
+//! A library for `NetPBM` files. _**`Warning: This is an highly experimental crate`**_
+//!
+//! Reading, Writing and Merging of `.ppm` files.
+//!
+//! # Example
+//!
+//! ```
+//! extern crate netpbm;
+//! use netpbm::Image;
+//!
+//! fn main() {
+//!     // Create an empty image
+//!     let new = Image::new();
+//!     // Writing of an empty image
+//!     new.save("output.ppm").unwrap();
+//!
+//!     // Reading an image
+//!     let mut image = Image::open("output.ppm").unwrap();
+//!     // Merging an image into the current image
+//!     let res = image.add("output.ppm").unwrap();
+//!     // Writing an image
+//!     res.save("output.ppm").unwrap();
+//! }
+//! ```
 
 use std::fs::File;
 
 use std::io;
 use std::io::{Read, Write, Error, ErrorKind};
 
-
+/// The main structure of this crate
 #[derive(Default)]
 pub struct Image {
+    /// Image iteration count
     pub iters: usize,
+    /// Width of an image
     pub width: usize,
+    /// Height of an image
     pub height: usize,
+    /// The Maximum value for each pixel
     pub max_val: usize,
+    /// Pixel data. If empty the image is considered empty
     pub data: Vec<u32>,
 }
 
 
 impl Image {
+    /// Generate an empty `Image`
     pub fn new() -> Self {
         Image::default()
     }
 
+    /// Test if `Image` is empty
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
@@ -79,6 +110,10 @@ impl Image {
         })
     }
 
+    /// Load the contents of a file to an `Image`
+    ///
+    /// - The values of a loaded image are multiplied
+    /// by its number of iterations
     pub fn open(filename: &str) -> io::Result<Self> {
 
         let content = try!(Self::get_file_content(filename));
@@ -100,6 +135,10 @@ impl Image {
         Ok(image)
     }
 
+    /// Accumulate the contents of a file to the `Image`
+    ///
+    /// - The values of a loaded image are multiplied
+    /// by its number of iterations
     pub fn add(&mut self, filename: &str) -> io::Result<Self> {
 
         let content = try!(Self::get_file_content(filename));
@@ -118,6 +157,10 @@ impl Image {
         Ok(image)
     }
 
+    /// Output a file for this `Image`
+    ///
+    /// - All values are devided by `self.iters` to mantain the values
+    /// in the `0` to `self.max_val` range.
     pub fn save(&self, filename: &str) -> io::Result<()> {
 
         let mut file = try!(File::create(filename));
