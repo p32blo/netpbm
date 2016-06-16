@@ -125,7 +125,7 @@ impl Image {
         let img_size = image.width * image.height;
         let img_rgb_size = img_size * 3;
 
-        image.data.reserve(img_rgb_size);
+        image.data.reserve_exact(img_rgb_size);
 
         for word in split {
             let val: u32 = word.parse().unwrap();
