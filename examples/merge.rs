@@ -1,5 +1,28 @@
+//! Example project for the `netpbm` crate
 //!
-//! Exemple project for the `netpbm` crate
+//! `merge` is an example binary that uses the `netpbm`
+//! crate to provide easy command line merging of `.ppm` files
+//!
+//! # Example
+//!
+//! When wanting to merge two or more files, just use:
+//!
+//! ```sh
+//! $ merge CPU.ppm GPU.ppm
+//! reading: CPU.ppm [ 1024 x 768 ] iters = 285
+//! reading: GPU.ppm [ 1024 x 768 ] iters = 332
+//! writing: output.ppm [ 1024 x 768 ] iters = 617
+//! ```
+//!
+//! By default the output file will be named `output.ppm`.
+//! To change the output name the `-o` option can be given:
+//!
+//! ```sh
+//! $ merge CPU.ppm GPU.ppm -o result.ppm
+//! reading: CPU.ppm [ 1024 x 768 ] iters = 285
+//! reading: GPU.ppm [ 1024 x 768 ] iters = 332
+//! writing: result.ppm [ 1024 x 768 ] iters = 617
+//! ```
 //!
 
 extern crate netpbm;
@@ -16,13 +39,12 @@ fn main() {
 
     let mut opts = getopts::Options::new();
 
-    let mut args = env::args();
-    let prog = &mut args.next().unwrap();
-
     opts.optopt("o", "output", "Set custom Output filename", "FILE");
     opts.optflag("h", "help", "Print this help menu");
 
-    let matches = match opts.parse(args.collect::<Vec<String>>()) {
+    let args = env::args().skip(1);
+
+    let matches = match opts.parse(args) {
         Ok(m) => m,
         Err(f) => {
             println!("{}", f);
@@ -31,7 +53,7 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        println!("{}", opts.usage(&opts.short_usage(prog)));
+        help();
         return;
     }
 
@@ -82,7 +104,20 @@ fn main() {
                  image.iters);
 
         image.save(&output).unwrap();
+    } else {
+        help();
+        return;
     }
+}
+
+fn help() {
+    println!("Usage: merge [-o FILE] [-h] file [file ...]");
+    println!("");
+    println!("Options:");
+    println!("    -o, --output FILE   Set custom Output filename");
+    println!("    -h, --help          Print this help menu");
+
+    // println!("{}", opts.usage(&opts.short_usage(prog)));
 }
 
 fn handle_error(e: io::Error, arg: &str) {
