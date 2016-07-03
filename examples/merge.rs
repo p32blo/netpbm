@@ -57,10 +57,7 @@ fn main() {
         return;
     }
 
-    let output = match matches.opt_str("o") {
-        Some(filename) => filename,
-        None => "output.ppm".into(),
-    };
+    let output = matches.opt_str("o").unwrap_or("output.ppm".into());
 
     let mut files = matches.free.iter();
 
