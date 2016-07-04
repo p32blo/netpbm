@@ -147,7 +147,7 @@ impl Image {
         // skip metadata
         let split = content.split_whitespace().skip(5);
 
-        for (word, item) in split.zip(self.data.iter_mut()) {
+        for (word, item) in split.zip(&mut self.data) {
             let val: u32 = word.parse().unwrap();
             *item += val * image.iters as u32;
         }
