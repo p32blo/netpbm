@@ -40,7 +40,8 @@ fn main() {
     let mut opts = getopts::Options::new();
 
     opts.optopt("o", "output", "Set custom Output filename", "FILE");
-    opts.optflag("h", "help", "Print this help menu");
+    opts.optflag("v", "version", "Show app version");
+    opts.optflag("h", "help", "Show this help menu");
 
     let args = env::args().skip(1);
 
@@ -53,7 +54,13 @@ fn main() {
     };
 
     if matches.opt_present("h") {
+        // println!("{}", opts.usage(&opts.short_usage("merge")));
         help();
+        return;
+    }
+
+    if matches.opt_present("v") {
+        println!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         return;
     }
 
@@ -108,13 +115,12 @@ fn main() {
 }
 
 fn help() {
-    println!("Usage: merge [-o FILE] [-h] file [file ...]");
-    println!("");
-    println!("Options:");
-    println!("    -o, --output FILE   Set custom Output filename");
-    println!("    -h, --help          Print this help menu");
-
-    // println!("{}", opts.usage(&opts.short_usage(prog)));
+    println!(concat!("Usage: merge [-o FILE] [-v] [-h] file [file ...]\n",
+                     "\n",
+                     "Options:\n",
+                     "    -o, --output FILE   Set custom Output filename\n",
+                     "    -v, --version       Show app version\n",
+                     "    -h, --help          Show this help menu\n"));
 }
 
 fn handle_error(e: io::Error, arg: &str) {
