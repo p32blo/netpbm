@@ -189,4 +189,55 @@ impl Image {
 
         Ok(())
     }
+
+    fn y_val(val: (f32, f32, f32)) -> f32 {
+        0.2126 * val.0 + 0.7152 * val.1 + 0.0722 * val.2
+    }
+
+
+    /// Calculate the RMSE of an image in relation to a ref Image
+    pub fn rmse(&self, filename: &str) -> io::Result<f32> {
+        let content = try!(Self::get_file_content(filename));
+        // let image = try!(Self::load_metadata(&content));
+
+        // skip metadata
+        let mut split = content.split_whitespace().skip(5);
+
+        let size = self.width * self.height;
+
+        let mut iter = self.data.iter();
+
+        let mut mse: f32 = 0.0;
+        let mut max_r: f32 = -1.0;
+
+        for _ in 0..self.height {
+            for _ in 0..self.width {
+                let img: (f32, f32, f32) =
+                    (*iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32,
+                     *iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32,
+                     *iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32);
+
+                let r = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
+                let g = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
+                let b = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
+
+                let reference: (f32, f32, f32) = (r, g, b);
+
+                let yi = Self::y_val(img);
+                let yr = Self::y_val(reference);
+
+                let sqdiff = (yi - yr).powf(2.0);
+
+                mse += sqdiff;
+
+                max_r = max_r.max(yr);
+            }
+        }
+
+        mse /= size as f32;
+
+        let rmse = mse.sqrt();
+
+        Ok(rmse)
+    }
 }
