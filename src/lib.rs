@@ -38,9 +38,9 @@ pub struct Image {
     /// Height of an image
     pub height: usize,
     /// The Maximum value for each pixel
-    pub max_val: usize,
+    pub ratio: f32,
     /// Pixel data. If empty the image is considered empty
-    pub data: Vec<u32>,
+    pub data: Vec<f32>,
 }
 
 
@@ -57,10 +57,10 @@ impl Image {
 
     fn get_file_content(filename: &str) -> io::Result<String> {
 
-        let mut file = try!(File::open(filename));
+        let mut file = File::open(filename)?;
 
         let mut content = String::new();
-        try!(file.read_to_string(&mut content));
+        file.read_to_string(&mut content)?;
 
         Ok(content)
     }
@@ -70,15 +70,15 @@ impl Image {
         let iters: usize;
         let width: usize;
         let height: usize;
-        let max_val: usize;
+        let ratio: f32;
 
         {
             let mut split = content.split_whitespace();
 
             if let Some(val) = split.next() {
-                if val != "P3" {
+                if val != "PF" {
                     return Err(Error::new(ErrorKind::InvalidData,
-                                          "File does not contain 'P3' tag"));
+                                          "File does not contain 'PF' tag"));
                 }
             }
 
@@ -93,19 +93,19 @@ impl Image {
 
             width = split.next().unwrap().parse().unwrap();
             height = split.next().unwrap().parse().unwrap();
-            max_val = split.next().unwrap().parse().unwrap();
+            ratio = split.next().unwrap().parse().unwrap();
 
             // println!("debug: iters = {:?}, {:?}", hash, iters);
             // println!("debug: width = {:?}", width);
             // println!("debug: height = {:?}", height);
-            // println!("debug: max_val = {:?}", max_val);
+            // println!("debug: ratio = {:?}", ratio);
         }
 
         Ok(Image {
             iters: iters,
             width: width,
             height: height,
-            max_val: max_val,
+            ratio: ratio,
             data: Vec::default(),
         })
     }
@@ -116,8 +116,8 @@ impl Image {
     /// by its number of iterations
     pub fn open(filename: &str) -> io::Result<Self> {
 
-        let content = try!(Self::get_file_content(filename));
-        let mut image = try!(Self::load_metadata(&content));
+        let content = Self::get_file_content(filename)?;
+        let mut image = Self::load_metadata(&content)?;
 
         // skip metadata
         let split = content.split_whitespace().skip(5);
@@ -127,9 +127,8 @@ impl Image {
 
         image.data.reserve_exact(img_rgb_size);
 
-        for word in split {
-            let val: u32 = word.parse().unwrap();
-            image.data.push(val * image.iters as u32);
+        for word in split.map(|w| w.parse().unwrap()) {
+            image.data.push(word);
         }
 
         Ok(image)
@@ -141,15 +140,14 @@ impl Image {
     /// by its number of iterations
     pub fn add(&mut self, filename: &str) -> io::Result<Self> {
 
-        let content = try!(Self::get_file_content(filename));
-        let image = try!(Self::load_metadata(&content));
+        let content = Self::get_file_content(filename)?;
+        let image = Self::load_metadata(&content)?;
 
         // skip metadata
         let split = content.split_whitespace().skip(5);
 
         for (word, item) in split.zip(&mut self.data) {
-            let val: u32 = word.parse().unwrap();
-            *item += val * image.iters as u32;
+            *item += word.parse().unwrap();
         }
 
         self.iters += image.iters;
@@ -160,24 +158,24 @@ impl Image {
     /// Output a file for this `Image`
     ///
     /// - All values are devided by `self.iters` to mantain the values
-    /// in the `0` to `self.max_val` range.
+    /// in the `0` to `self.ratio` range.
     pub fn save(&self, filename: &str) -> io::Result<()> {
 
-        let mut file = try!(File::create(filename));
+        let mut file = File::create(filename)?;
 
         let mut res = String::with_capacity(self.width * self.height * 3 * 4);
 
-        res.push_str("P3\n");
+        res.push_str("PF\n");
         res.push_str(&format!("#{}\n", self.iters));
-        res.push_str(&format!("{} {} {}\n", self.width, self.height, self.max_val));
+        res.push_str(&format!("{} {} {}\n", self.width, self.height, self.ratio));
 
         let mut iter = self.data.iter();
 
         for _ in 0..self.height {
             for _ in 0..self.width {
-                let (r, g, b) = (iter.next().unwrap() / self.iters as u32,
-                                 iter.next().unwrap() / self.iters as u32,
-                                 iter.next().unwrap() / self.iters as u32);
+                let (r, g, b) = (iter.next().unwrap() / self.iters as f32,
+                                 iter.next().unwrap() / self.iters as f32,
+                                 iter.next().unwrap() / self.iters as f32);
 
                 res.push_str(&format!("{} {} {} ", r, g, b));
             }
@@ -185,7 +183,7 @@ impl Image {
             res.push('\n');
         }
 
-        try!(file.write_all(res.as_bytes()));
+        file.write_all(res.as_bytes())?;
 
         Ok(())
     }
@@ -212,14 +210,13 @@ impl Image {
 
         for _ in 0..self.height {
             for _ in 0..self.width {
-                let img: (f32, f32, f32) =
-                    (*iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32,
-                     *iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32,
-                     *iter.next().unwrap() as f32 / self.iters as f32 / self.max_val as f32);
+                let img: (f32, f32, f32) = (*iter.next().unwrap() / self.iters as f32,
+                                            *iter.next().unwrap() / self.iters as f32,
+                                            *iter.next().unwrap() / self.iters as f32);
 
-                let r = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
-                let g = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
-                let b = split.next().unwrap().parse::<u32>().unwrap() as f32 / self.max_val as f32;
+                let r = split.next().unwrap().parse::<f32>().unwrap();
+                let g = split.next().unwrap().parse::<f32>().unwrap();
+                let b = split.next().unwrap().parse::<f32>().unwrap();
 
                 let reference: (f32, f32, f32) = (r, g, b);
 

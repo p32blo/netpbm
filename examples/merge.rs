@@ -64,7 +64,7 @@ fn main() {
         return;
     }
 
-    let output = matches.opt_str("o").unwrap_or("output.ppm".into());
+    let output = matches.opt_str("o").unwrap_or("output.pfm".into());
 
     let mut files = matches.free.iter();
 
