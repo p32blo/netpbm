@@ -23,10 +23,19 @@
 //! }
 //! ```
 
-use std::fs::File;
+extern crate byteorder;
+
+use byteorder::{NativeEndian, LittleEndian, BigEndian};
+use byteorder::{WriteBytesExt, ReadBytesExt};
 
 use std::io;
-use std::io::{Read, Write, Error, ErrorKind};
+use std::io::{Read, Write};
+use std::io::{BufRead, BufReader};
+use std::io::{Error, ErrorKind};
+
+use std::fs::File;
+use std::path::Path;
+
 
 /// The main structure of this crate
 #[derive(Default)]
@@ -43,11 +52,10 @@ pub struct Image {
     pub data: Vec<f32>,
 }
 
-
 impl Image {
     /// Generate an empty `Image`
     pub fn new() -> Self {
-        Image::default()
+        Self::default()
     }
 
     /// Test if `Image` is empty
@@ -65,71 +73,66 @@ impl Image {
         Ok(content)
     }
 
-    fn load_metadata(content: &str) -> io::Result<Self> {
+    fn load_metadata<R: BufRead>(content: R) -> io::Result<Self> {
 
-        let iters: usize;
-        let width: usize;
-        let height: usize;
-        let ratio: f32;
+        let mut img = Self::default();
 
-        {
-            let mut split = content.split_whitespace();
+        let mut lines = content.lines()
+            .map(|l| l.unwrap())
+            .filter(|l| !l.starts_with("#"))
+            .flat_map(|line| {
+                line.split_whitespace()
+                    .map(|w| w.to_string())
+                    .collect::<Vec<_>>()
+                    .into_iter()
+            });
 
-            if let Some(val) = split.next() {
-                if val != "PF" {
-                    return Err(Error::new(ErrorKind::InvalidData,
-                                          "File does not contain 'PF' tag"));
-                }
+        if let Some(val) = lines.next() {
+            if val != "PF" {
+                return Err(Error::new(ErrorKind::InvalidData, "File does not contain 'PF' tag"));
             }
-
-            let (hash, number) = split.next().unwrap().split_at(1);
-
-            iters = number.parse().unwrap();
-
-            if hash != "#" {
-                return Err(Error::new(ErrorKind::InvalidData,
-                                      "File does not have required metadata"));
-            }
-
-            width = split.next().unwrap().parse().unwrap();
-            height = split.next().unwrap().parse().unwrap();
-            ratio = split.next().unwrap().parse().unwrap();
-
-            // println!("debug: iters = {:?}, {:?}", hash, iters);
-            // println!("debug: width = {:?}", width);
-            // println!("debug: height = {:?}", height);
-            // println!("debug: ratio = {:?}", ratio);
         }
 
-        Ok(Image {
-            iters: iters,
-            width: width,
-            height: height,
-            ratio: ratio,
-            data: Vec::default(),
-        })
+        img.width = lines.next().unwrap().parse().expect("Metadata is missing");
+        img.height = lines.next().unwrap().parse().expect("Metadata is missing");
+        img.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
+
+        // println!("debug: iters = {:?}", img.iters);
+        // println!("debug: width = {:?}", img.width);
+        // println!("debug: height = {:?}", img.height);
+        // println!("debug: ratio = {:?}", img.ratio);
+
+        Ok(img)
     }
 
     /// Load the contents of a file to an `Image`
     ///
     /// - The values of a loaded image are multiplied
     /// by its number of iterations
-    pub fn open(filename: &str) -> io::Result<Self> {
+    pub fn open<P: AsRef<Path>>(filename: P) -> io::Result<Self> {
 
-        let content = Self::get_file_content(filename)?;
-        let mut image = Self::load_metadata(&content)?;
+        let file = File::open(filename)?;
 
-        // skip metadata
-        let split = content.split_whitespace().skip(5);
+        let mut f = BufReader::new(&file);
+
+        let mut image = Self::load_metadata(f.by_ref())?;
 
         let img_size = image.width * image.height;
         let img_rgb_size = img_size * 3;
 
         image.data.reserve_exact(img_rgb_size);
 
-        for word in split.map(|w| w.parse().unwrap()) {
-            image.data.push(word);
+        if image.ratio < 0.0{
+            while let Ok(val) = f.read_f32::<LittleEndian>() {
+                image.data.push(val)
+            }
+        } else {
+            while let Ok(val) = f.read_f32::<BigEndian>() {
+                image.data.push(val)
+            }
         }
+
+        println!("{:?}", image.data);
 
         Ok(image)
     }
@@ -138,21 +141,22 @@ impl Image {
     ///
     /// - The values of a loaded image are multiplied
     /// by its number of iterations
-    pub fn add(&mut self, filename: &str) -> io::Result<Self> {
+    pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<Self> {
 
-        let content = Self::get_file_content(filename)?;
-        let image = Self::load_metadata(&content)?;
+        // let file = File::open(filename)?;
 
-        // skip metadata
-        let split = content.split_whitespace().skip(5);
+        // let image = Self::load_metadata(&BufReader::new(file))?;
 
-        for (word, item) in split.zip(&mut self.data) {
-            *item += word.parse().unwrap();
-        }
+        // // skip metadata
+        // let split = content.split_whitespace().skip(5);
 
-        self.iters += image.iters;
+        // for (word, item) in split.zip(&mut self.data) {
+        //     *item += word.parse().unwrap();
+        // }
 
-        Ok(image)
+        // self.iters += image.iters;
+
+        Ok(Image::default())
     }
 
     /// Output a file for this `Image`
@@ -167,7 +171,17 @@ impl Image {
 
         res.push_str("PF\n");
         res.push_str(&format!("#{}\n", self.iters));
-        res.push_str(&format!("{} {} {}\n", self.width, self.height, self.ratio));
+        res.push_str(&format!("{} {}\n", self.width, self.height));
+
+        if cfg!(target_endian = "little") {
+            res.push_str(&format!("{}\n", -self.ratio.abs()));
+        } else {
+            res.push_str(&format!("{}\n", self.ratio.abs()));
+        }
+
+        file.write_all(res.as_bytes())?;
+
+        let mut buf: Vec<u8> = Vec::new();
 
         let mut iter = self.data.iter();
 
@@ -177,13 +191,13 @@ impl Image {
                                  iter.next().unwrap() / self.iters as f32,
                                  iter.next().unwrap() / self.iters as f32);
 
-                res.push_str(&format!("{} {} {} ", r, g, b));
+                buf.write_f32::<NativeEndian>(r)?;
+                buf.write_f32::<NativeEndian>(g)?;
+                buf.write_f32::<NativeEndian>(b)?;
             }
-            res.pop();
-            res.push('\n');
         }
 
-        file.write_all(res.as_bytes())?;
+        file.write_all(&buf)?;
 
         Ok(())
     }
@@ -217,6 +231,7 @@ impl Image {
                 let r = split.next().unwrap().parse::<f32>().unwrap();
                 let g = split.next().unwrap().parse::<f32>().unwrap();
                 let b = split.next().unwrap().parse::<f32>().unwrap();
+
 
                 let reference: (f32, f32, f32) = (r, g, b);
 
