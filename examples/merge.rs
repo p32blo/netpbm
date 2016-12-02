@@ -75,26 +75,12 @@ fn main() {
     for arg in &mut files {
         match Image::open(arg) {
             Ok(img) => {
-                image = img;
+                image += img;
                 println!("reading: {} [ {} x {} ] iters = {}",
                          arg,
                          image.width,
                          image.height,
                          image.iters);
-                break;
-            }
-            Err(e) => handle_error(e, arg),
-        }
-    }
-
-    for arg in &mut files {
-        match image.add(arg) {
-            Ok(img) => {
-                println!("reading: {} [ {} x {} ] iters = {}",
-                         arg,
-                         img.width,
-                         img.height,
-                         img.iters);
             }
             Err(e) => handle_error(e, arg),
         }

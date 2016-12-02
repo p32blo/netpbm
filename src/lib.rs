@@ -36,9 +36,10 @@ use std::io::{Error, ErrorKind};
 use std::fs::File;
 use std::path::Path;
 
+use std::ops::AddAssign;
+
 
 /// The main structure of this crate
-#[derive(Default)]
 pub struct Image {
     /// Image iteration count
     pub iters: usize,
@@ -52,6 +53,35 @@ pub struct Image {
     pub data: Vec<f32>,
 }
 
+impl AddAssign for Image {
+    fn add_assign(&mut self, other: Image) {
+
+        if self.is_empty() {
+            *self = other;
+        } else {
+            for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
+                *data += val;
+            }
+        }
+    }
+}
+
+impl Default for Image {
+    fn default() -> Image {
+        Image {
+            ratio: if cfg!(target_endian = "little") {
+                -1.0
+            } else {
+                1.0
+            },
+            iters: Default::default(),
+            height: Default::default(),
+            width: Default::default(),
+            data: Default::default(),
+        }
+    }
+}
+
 impl Image {
     /// Generate an empty `Image`
     pub fn new() -> Self {
@@ -61,6 +91,16 @@ impl Image {
     /// Test if `Image` is empty
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
+    }
+
+    /// Check if image is little endian
+    fn is_le(&self) -> bool {
+        self.ratio.is_sign_negative()
+    }
+
+    /// Check if image is little endian
+    fn is_be(&self) -> bool {
+        self.ratio.is_sign_positive()
     }
 
     fn get_file_content(filename: &str) -> io::Result<String> {
@@ -97,11 +137,6 @@ impl Image {
         img.height = lines.next().unwrap().parse().expect("Metadata is missing");
         img.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
 
-        // println!("debug: iters = {:?}", img.iters);
-        // println!("debug: width = {:?}", img.width);
-        // println!("debug: height = {:?}", img.height);
-        // println!("debug: ratio = {:?}", img.ratio);
-
         Ok(img)
     }
 
@@ -111,10 +146,7 @@ impl Image {
     /// by its number of iterations
     pub fn open<P: AsRef<Path>>(filename: P) -> io::Result<Self> {
 
-        let file = File::open(filename)?;
-
-        let mut f = BufReader::new(&file);
-
+        let mut f = BufReader::new(File::open(filename)?);
         let mut image = Self::load_metadata(f.by_ref())?;
 
         let img_size = image.width * image.height;
@@ -122,7 +154,7 @@ impl Image {
 
         image.data.reserve_exact(img_rgb_size);
 
-        if image.ratio < 0.0{
+        if image.is_le() {
             while let Ok(val) = f.read_f32::<LittleEndian>() {
                 image.data.push(val)
             }
@@ -132,8 +164,6 @@ impl Image {
             }
         }
 
-        println!("{:?}", image.data);
-
         Ok(image)
     }
 
@@ -141,22 +171,12 @@ impl Image {
     ///
     /// - The values of a loaded image are multiplied
     /// by its number of iterations
-    pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<Self> {
+    pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<()> {
+        let img = Image::open(filename)?;
 
-        // let file = File::open(filename)?;
+        *self += img;
 
-        // let image = Self::load_metadata(&BufReader::new(file))?;
-
-        // // skip metadata
-        // let split = content.split_whitespace().skip(5);
-
-        // for (word, item) in split.zip(&mut self.data) {
-        //     *item += word.parse().unwrap();
-        // }
-
-        // self.iters += image.iters;
-
-        Ok(Image::default())
+        Ok(())
     }
 
     /// Output a file for this `Image`
@@ -202,38 +222,25 @@ impl Image {
         Ok(())
     }
 
-    fn y_val(val: (f32, f32, f32)) -> f32 {
-        0.2126 * val.0 + 0.7152 * val.1 + 0.0722 * val.2
+    fn y_val(rgb: &[f32]) -> f32 {
+        0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
     }
 
 
     /// Calculate the RMSE of an image in relation to a ref Image
-    pub fn rmse(&self, filename: &str) -> io::Result<f32> {
-        let content = try!(Self::get_file_content(filename));
-        // let image = try!(Self::load_metadata(&content));
-
-        // skip metadata
-        let mut split = content.split_whitespace().skip(5);
+    pub fn rmse(&self, ref_img: &Image) -> io::Result<f32> {
 
         let size = self.width * self.height;
 
-        let mut iter = self.data.iter();
+        let mut rgb = self.data.chunks(3).zip(ref_img.data.chunks(3));
 
         let mut mse: f32 = 0.0;
         let mut max_r: f32 = -1.0;
 
         for _ in 0..self.height {
             for _ in 0..self.width {
-                let img: (f32, f32, f32) = (*iter.next().unwrap() / self.iters as f32,
-                                            *iter.next().unwrap() / self.iters as f32,
-                                            *iter.next().unwrap() / self.iters as f32);
 
-                let r = split.next().unwrap().parse::<f32>().unwrap();
-                let g = split.next().unwrap().parse::<f32>().unwrap();
-                let b = split.next().unwrap().parse::<f32>().unwrap();
-
-
-                let reference: (f32, f32, f32) = (r, g, b);
+                let (img, reference) = rgb.next().unwrap();
 
                 let yi = Self::y_val(img);
                 let yr = Self::y_val(reference);
