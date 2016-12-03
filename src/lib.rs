@@ -29,8 +29,7 @@ use byteorder::{NativeEndian, LittleEndian, BigEndian};
 use byteorder::{WriteBytesExt, ReadBytesExt};
 
 use std::io;
-use std::io::{Read, Write};
-use std::io::{BufRead, BufReader};
+use std::io::{Write, BufRead, BufReader};
 use std::io::{Error, ErrorKind};
 
 use std::fs::File;
@@ -93,6 +92,11 @@ impl Image {
         self.data.is_empty()
     }
 
+    /// Return the size of the image
+    pub fn size(&self) -> usize {
+        self.width * self.height
+    }
+
     /// Check if image is little endian
     fn is_le(&self) -> bool {
         self.ratio.is_sign_negative()
@@ -103,19 +107,7 @@ impl Image {
         self.ratio.is_sign_positive()
     }
 
-    fn get_file_content(filename: &str) -> io::Result<String> {
-
-        let mut file = File::open(filename)?;
-
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
-
-        Ok(content)
-    }
-
-    fn load_metadata<R: BufRead>(content: R) -> io::Result<Self> {
-
-        let mut img = Self::default();
+    fn load_metadata<R: BufRead>(&mut self, content: R) -> io::Result<()> {
 
         let mut lines = content.lines()
             .map(|l| l.unwrap())
@@ -133,11 +125,33 @@ impl Image {
             }
         }
 
-        img.width = lines.next().unwrap().parse().expect("Metadata is missing");
-        img.height = lines.next().unwrap().parse().expect("Metadata is missing");
-        img.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
+        self.width = lines.next().unwrap().parse().expect("Metadata is missing");
+        self.height = lines.next().unwrap().parse().expect("Metadata is missing");
+        self.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
 
-        Ok(img)
+        Ok(())
+    }
+
+    fn load_data<R: BufRead>(&mut self, mut f: R) -> io::Result<()> {
+
+        self.data.clear();
+
+        let img_rgb_size = self.size() * 3;
+        // reserver image rgb size
+        self.data.reserve_exact(img_rgb_size);
+
+        // if data is little endian
+        if self.is_le() {
+            while let Ok(val) = f.read_f32::<LittleEndian>() {
+                self.data.push(val)
+            }
+        } else {
+            while let Ok(val) = f.read_f32::<BigEndian>() {
+                self.data.push(val)
+            }
+        }
+
+        Ok(())
     }
 
     /// Load the contents of a file to an `Image`
@@ -146,23 +160,11 @@ impl Image {
     /// by its number of iterations
     pub fn open<P: AsRef<Path>>(filename: P) -> io::Result<Self> {
 
+        let mut image = Image::default();
+
         let mut f = BufReader::new(File::open(filename)?);
-        let mut image = Self::load_metadata(f.by_ref())?;
-
-        let img_size = image.width * image.height;
-        let img_rgb_size = img_size * 3;
-
-        image.data.reserve_exact(img_rgb_size);
-
-        if image.is_le() {
-            while let Ok(val) = f.read_f32::<LittleEndian>() {
-                image.data.push(val)
-            }
-        } else {
-            while let Ok(val) = f.read_f32::<BigEndian>() {
-                image.data.push(val)
-            }
-        }
+        image.load_metadata(&mut f)?;
+        image.load_data(f)?;
 
         Ok(image)
     }
