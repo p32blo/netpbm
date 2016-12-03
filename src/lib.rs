@@ -47,9 +47,9 @@ pub struct Image {
     /// Height of an image
     pub height: usize,
     /// The Maximum value for each pixel
-    pub ratio: f32,
+    ratio: f32,
     /// Pixel data. If empty the image is considered empty
-    pub data: Vec<f32>,
+    data: Vec<f32>,
 }
 
 impl AddAssign for Image {
@@ -175,9 +175,7 @@ impl Image {
     /// by its number of iterations
     pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<()> {
         let img = Image::open(filename)?;
-
         *self += img;
-
         Ok(())
     }
 
