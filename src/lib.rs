@@ -39,7 +39,7 @@ use std::io::{Error, ErrorKind};
 
 
 /// The main structure of this crate
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     /// Image iteration count
     iters: usize,
@@ -55,14 +55,18 @@ pub struct Image {
 
 impl fmt::Display for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[ {} x {} ] iters = {}", self.width, self.height, self.iters)
+        write!(f,
+               "[ {} x {} ] iters = {}",
+               self.width,
+               self.height,
+               self.iters)
     }
 }
 
-impl AddAssign for Image {
-    fn add_assign(&mut self, other: Image) {
+impl<'a> AddAssign<&'a Image> for Image {
+    fn add_assign(&mut self, other: &'a Image) {
         if self.is_empty() {
-            *self = other;
+            *self = other.clone();
         } else {
             for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
                 *data *= self.iters as f32;
@@ -192,7 +196,7 @@ impl Image {
     /// by its number of iterations
     pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<()> {
         let img = Image::open(filename)?;
-        *self += img;
+        *self += &img;
         Ok(())
     }
 
