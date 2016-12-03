@@ -69,7 +69,7 @@ fn main() {
     // Image Loading
     let mut image = Image::new();
 
-    for arg in matches.free {
+    for arg in &matches.free {
         match Image::open(arg) {
             Ok(img) => {
                 image += img;

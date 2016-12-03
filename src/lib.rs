@@ -251,21 +251,19 @@ impl Image {
         let mut mse: f32 = 0.0;
         let mut max_r: f32 = -1.0;
 
-        for (rgb_a, rgb_b) in self.data.chunks(3).zip(img.data.chunks(3)) {
+        for (rgb_img, rgb_ref) in self.data.chunks(3).zip(img.data.chunks(3)) {
 
-            let yi = Self::luminance(rgb_a);
-            let yr = Self::luminance(rgb_b);
+            let yi = Self::luminance(rgb_img);
+            let yr = Self::luminance(rgb_ref);
 
             let sqdiff = (yi - yr).powf(2.0);
 
             mse += sqdiff;
             max_r = max_r.max(yr);
         }
-
         mse /= self.size() as f32;
 
         let rmse = mse.sqrt();
-
         rmse
     }
 }
