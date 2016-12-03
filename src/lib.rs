@@ -28,14 +28,15 @@ extern crate byteorder;
 use byteorder::{NativeEndian, LittleEndian, BigEndian};
 use byteorder::{WriteBytesExt, ReadBytesExt};
 
-use std::io;
-use std::io::{Write, BufRead, BufReader};
-use std::io::{Error, ErrorKind};
-
-use std::fs::File;
-use std::path::Path;
-
 use std::ops::AddAssign;
+
+use std::path::Path;
+use std::fs::File;
+
+use std::io;
+use std::io::{Read, BufRead, BufReader};
+use std::io::{Write, BufWriter};
+use std::io::{Error, ErrorKind};
 
 
 /// The main structure of this crate
@@ -132,7 +133,7 @@ impl Image {
         Ok(())
     }
 
-    fn load_data<R: BufRead>(&mut self, mut f: R) -> io::Result<()> {
+    fn load_data<R: Read>(&mut self, f: &mut R) -> io::Result<()> {
 
         self.data.clear();
 
@@ -164,7 +165,7 @@ impl Image {
 
         let mut f = BufReader::new(File::open(filename)?);
         image.load_metadata(&mut f)?;
-        image.load_data(f)?;
+        image.load_data(&mut f)?;
 
         Ok(image)
     }
@@ -179,45 +180,43 @@ impl Image {
         Ok(())
     }
 
+    fn store_metadata<W: Write>(&self, handle: &mut W) -> io::Result<()> {
+        let ratio = if cfg!(target_endian = "little") {
+            -self.ratio.abs()
+        } else {
+            self.ratio.abs()
+        };
+        write!(handle, "PF\n{} {} {}\n", self.width, self.height, ratio)?;
+        Ok(())
+    }
+
+    fn store_data<W: Write>(&self, handle: &mut W) -> io::Result<()> {
+
+        let mut iter = self.data.chunks(3);
+
+        for _ in 0..self.height {
+            for _ in 0..self.width {
+                let rgb = iter.next().unwrap();
+
+                handle.write_f32::<NativeEndian>(rgb[0])?;
+                handle.write_f32::<NativeEndian>(rgb[1])?;
+                handle.write_f32::<NativeEndian>(rgb[2])?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Output a file for this `Image`
     ///
     /// - All values are devided by `self.iters` to mantain the values
     /// in the `0` to `self.ratio` range.
     pub fn save(&self, filename: &str) -> io::Result<()> {
 
-        let mut file = File::create(filename)?;
+        let mut file = BufWriter::new(File::create(filename)?);
 
-        let mut res = String::with_capacity(self.width * self.height * 3 * 4);
-
-        res.push_str("PF\n");
-        res.push_str(&format!("#{}\n", self.iters));
-        res.push_str(&format!("{} {}\n", self.width, self.height));
-
-        if cfg!(target_endian = "little") {
-            res.push_str(&format!("{}\n", -self.ratio.abs()));
-        } else {
-            res.push_str(&format!("{}\n", self.ratio.abs()));
-        }
-
-        file.write_all(res.as_bytes())?;
-
-        let mut buf: Vec<u8> = Vec::new();
-
-        let mut iter = self.data.iter();
-
-        for _ in 0..self.height {
-            for _ in 0..self.width {
-                let (r, g, b) = (iter.next().unwrap() / self.iters as f32,
-                                 iter.next().unwrap() / self.iters as f32,
-                                 iter.next().unwrap() / self.iters as f32);
-
-                buf.write_f32::<NativeEndian>(r)?;
-                buf.write_f32::<NativeEndian>(g)?;
-                buf.write_f32::<NativeEndian>(b)?;
-            }
-        }
-
-        file.write_all(&buf)?;
+        self.store_metadata(&mut file)?;
+        self.store_data(&mut file)?;
 
         Ok(())
     }
