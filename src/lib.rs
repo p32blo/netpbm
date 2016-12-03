@@ -65,13 +65,18 @@ impl fmt::Display for Image {
 
 impl AddAssign for Image {
     fn add_assign(&mut self, other: Image) {
-
         if self.is_empty() {
             *self = other;
         } else {
+            let self_iters= self.iters.unwrap_or(1);
+            let other_iters = other.iters.unwrap_or(1);
+
             for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
-                *data += val;
+                *data *= self_iters as f32;
+                *data += val * other_iters as f32;
             }
+
+            self.iters = Some(self_iters + other_iters);
         }
     }
 }
