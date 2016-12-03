@@ -42,7 +42,7 @@ use std::io::{Error, ErrorKind};
 #[derive(Debug)]
 pub struct Image {
     /// Image iteration count
-    iters: Option<usize>,
+    iters: usize,
     /// Width of an image
     pub width: usize,
     /// Height of an image
@@ -55,11 +55,7 @@ pub struct Image {
 
 impl fmt::Display for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[ {} x {} ]", self.width, self.height)?;
-        if let Some(it) = self.iters {
-            write!(f, " iters = {}", it)?;
-        }
-        Ok(())
+        write!(f, "[ {} x {} ] iters = {}", self.width, self.height, self.iters)
     }
 }
 
@@ -68,15 +64,11 @@ impl AddAssign for Image {
         if self.is_empty() {
             *self = other;
         } else {
-            let self_iters= self.iters.unwrap_or(1);
-            let other_iters = other.iters.unwrap_or(1);
-
             for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
-                *data *= self_iters as f32;
-                *data += val * other_iters as f32;
+                *data *= self.iters as f32;
+                *data += val * other.iters as f32;
             }
-
-            self.iters = Some(self_iters + other_iters);
+            self.iters += other.iters;
         }
     }
 }
@@ -89,7 +81,7 @@ impl Default for Image {
             } else {
                 1.0
             },
-            iters: Default::default(),
+            iters: 1,
             height: Default::default(),
             width: Default::default(),
             data: Default::default(),
@@ -124,15 +116,14 @@ impl Image {
     }
 
     fn load_metadata<R: BufRead + Seek>(&mut self, content: &mut R) -> io::Result<()> {
-        let mut it = String::new();
-        content.read_line(&mut it)?;
+        let mut line = String::new();
+        content.read_line(&mut line)?;
 
-
-        self.iters = if it.starts_with("#>") {
-            Some(it.split_whitespace().nth(1).unwrap().parse().expect("Metadata is missing"))
+        self.iters = if line.starts_with("#>") {
+            line.split_whitespace().nth(1).unwrap().parse().expect("Metadata is missing")
         } else {
             content.seek(SeekFrom::Start(0))?;
-            None
+            1
         };
 
         let mut lines = content.lines()
@@ -207,9 +198,7 @@ impl Image {
 
     fn store_metadata<W: Write>(&self, handle: &mut W) -> io::Result<()> {
 
-        if let Some(it) = self.iters {
-            write!(handle, "#> {}\n", it)?;
-        }
+        write!(handle, "#> {}\n", self.iters)?;
 
         let ratio = if cfg!(target_endian = "little") {
             -self.ratio.abs()
