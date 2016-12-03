@@ -5,22 +5,19 @@
 //! # Example
 //!
 //! ```
-//! extern crate netpbm;
 //! use netpbm::Image;
 //!
-//! fn main() {
-//!     // Create an empty image
-//!     let new = Image::new();
-//!     // Writing of an empty image
-//!     new.save("output.ppm").unwrap();
+//! // Create an empty image
+//! let new = Image::new();
+//! // Writing of an empty image
+//! new.save("output.pfm").unwrap();
 //!
-//!     // Reading an image
-//!     let mut image = Image::open("output.ppm").unwrap();
-//!     // Merging an image into the current image
-//!     let res = image.add("output.ppm").unwrap();
-//!     // Writing an image
-//!     res.save("output.ppm").unwrap();
-//! }
+//! // Reading an image
+//! let mut image = Image::open("output.pfm").unwrap();
+//! // Merging an image into the current image
+//! image += Image::open("output.pfm").unwrap();
+//! // Writing an image
+//! image.save("output.pfm").unwrap();
 //! ```
 
 extern crate byteorder;
