@@ -217,17 +217,11 @@ impl Image {
     }
 
     fn store_data<W: Write>(&self, handle: &mut W) -> io::Result<()> {
-
-        let mut iter = self.data.chunks(3);
-
-        for _ in 0..self.size() {
-            let rgb = iter.next().unwrap();
-
+        for rgb in self.data.chunks(3) {
             handle.write_f32::<NativeEndian>(rgb[0])?;
             handle.write_f32::<NativeEndian>(rgb[1])?;
             handle.write_f32::<NativeEndian>(rgb[2])?;
         }
-
         Ok(())
     }
 
@@ -245,24 +239,22 @@ impl Image {
         Ok(())
     }
 
-    fn y_val(rgb: &[f32]) -> f32 {
+    /// Calculate luminance from `RGB` acording to `Photometric/digital ITU BT.709`
+    fn luminance(rgb: &[f32]) -> f32 {
         0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
     }
 
 
     /// Calculate the RMSE of an image in relation to a ref Image
-    pub fn rmse(&self, ref_img: &Image) -> f32 {
-
-        let mut rgb = self.data.chunks(3).zip(ref_img.data.chunks(3));
+    pub fn rmse(&self, img: &Image) -> f32 {
 
         let mut mse: f32 = 0.0;
         let mut max_r: f32 = -1.0;
 
-        for _ in 0..self.size() {
-            let (img, reference) = rgb.next().unwrap();
+        for (rgb_a, rgb_b) in self.data.chunks(3).zip(img.data.chunks(3)) {
 
-            let yi = Self::y_val(img);
-            let yr = Self::y_val(reference);
+            let yi = Self::luminance(rgb_a);
+            let yr = Self::luminance(rgb_b);
 
             let sqdiff = (yi - yr).powf(2.0);
 
