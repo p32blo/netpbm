@@ -72,8 +72,8 @@ fn main() {
     for arg in &matches.free {
         match Image::open(arg) {
             Ok(img) => {
-                image += &img;
                 println!("reading: {} {}", arg, img);
+                image += img;
             }
             Err(e) => handle_error(e, arg),
         }

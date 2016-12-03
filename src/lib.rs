@@ -63,10 +63,10 @@ impl fmt::Display for Image {
     }
 }
 
-impl<'a> AddAssign<&'a Image> for Image {
-    fn add_assign(&mut self, other: &'a Image) {
+impl AddAssign for Image {
+    fn add_assign(&mut self, other: Image) {
         if self.is_empty() {
-            *self = other.clone();
+            *self = other;
         } else {
             for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
                 *data *= self.iters as f32;
@@ -188,16 +188,6 @@ impl Image {
         image.load_data(&mut f)?;
 
         Ok(image)
-    }
-
-    /// Accumulate the contents of a file to the `Image`
-    ///
-    /// - The values of a loaded image are multiplied
-    /// by its number of iterations
-    pub fn add<P: AsRef<Path>>(&mut self, filename: P) -> io::Result<()> {
-        let img = Image::open(filename)?;
-        *self += &img;
-        Ok(())
     }
 
     fn store_metadata<W: Write>(&self, handle: &mut W) -> io::Result<()> {
