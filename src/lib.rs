@@ -25,21 +25,24 @@ extern crate byteorder;
 use byteorder::{NativeEndian, LittleEndian, BigEndian};
 use byteorder::{WriteBytesExt, ReadBytesExt};
 
+use std::fmt;
 use std::ops::AddAssign;
 
 use std::path::Path;
 use std::fs::File;
 
 use std::io;
+use std::io::{Seek, SeekFrom};
 use std::io::{Read, BufRead, BufReader};
 use std::io::{Write, BufWriter};
 use std::io::{Error, ErrorKind};
 
 
 /// The main structure of this crate
+#[derive(Debug)]
 pub struct Image {
     /// Image iteration count
-    pub iters: usize,
+    iters: Option<usize>,
     /// Width of an image
     pub width: usize,
     /// Height of an image
@@ -48,6 +51,16 @@ pub struct Image {
     ratio: f32,
     /// Pixel data. If empty the image is considered empty
     data: Vec<f32>,
+}
+
+impl fmt::Display for Image {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[ {} x {} ]", self.width, self.height)?;
+        if let Some(it) = self.iters {
+            write!(f, " iters = {}", it)?;
+        }
+        Ok(())
+    }
 }
 
 impl AddAssign for Image {
@@ -105,7 +118,17 @@ impl Image {
         self.ratio.is_sign_positive()
     }
 
-    fn load_metadata<R: BufRead>(&mut self, content: R) -> io::Result<()> {
+    fn load_metadata<R: BufRead + Seek>(&mut self, content: &mut R) -> io::Result<()> {
+        let mut it = String::new();
+        content.read_line(&mut it)?;
+
+
+        self.iters = if it.starts_with("#>") {
+            Some(it.split_whitespace().nth(1).unwrap().parse().expect("Metadata is missing"))
+        } else {
+            content.seek(SeekFrom::Start(0))?;
+            None
+        };
 
         let mut lines = content.lines()
             .map(|l| l.unwrap())
@@ -178,11 +201,17 @@ impl Image {
     }
 
     fn store_metadata<W: Write>(&self, handle: &mut W) -> io::Result<()> {
+
+        if let Some(it) = self.iters {
+            write!(handle, "#> {}\n", it)?;
+        }
+
         let ratio = if cfg!(target_endian = "little") {
             -self.ratio.abs()
         } else {
             self.ratio.abs()
         };
+
         write!(handle, "PF\n{} {} {}\n", self.width, self.height, ratio)?;
         Ok(())
     }

@@ -66,33 +66,21 @@ fn main() {
 
     let output = matches.opt_str("o").unwrap_or("output.pfm".into());
 
-    let mut files = matches.free.iter();
-
     // Image Loading
-
     let mut image = Image::new();
 
-    for arg in &mut files {
+    for arg in matches.free {
         match Image::open(arg) {
             Ok(img) => {
                 image += img;
-                println!("reading: {} [ {} x {} ] iters = {}",
-                         arg,
-                         image.width,
-                         image.height,
-                         image.iters);
+                println!("reading: {} {}", arg, image);
             }
             Err(e) => handle_error(e, arg),
         }
     }
 
     if !image.is_empty() {
-        println!("writing: {} [ {} x {} ] iters = {}",
-                 output,
-                 image.width,
-                 image.height,
-                 image.iters);
-
+        println!("writing: {} {}", output, image);
         image.save(&output).unwrap();
     } else {
         help();
