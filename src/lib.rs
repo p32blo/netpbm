@@ -191,14 +191,12 @@ impl Image {
 
         let mut iter = self.data.chunks(3);
 
-        for _ in 0..self.height {
-            for _ in 0..self.width {
-                let rgb = iter.next().unwrap();
+        for _ in 0..self.size() {
+            let rgb = iter.next().unwrap();
 
-                handle.write_f32::<NativeEndian>(rgb[0])?;
-                handle.write_f32::<NativeEndian>(rgb[1])?;
-                handle.write_f32::<NativeEndian>(rgb[2])?;
-            }
+            handle.write_f32::<NativeEndian>(rgb[0])?;
+            handle.write_f32::<NativeEndian>(rgb[1])?;
+            handle.write_f32::<NativeEndian>(rgb[2])?;
         }
 
         Ok(())
@@ -226,30 +224,24 @@ impl Image {
     /// Calculate the RMSE of an image in relation to a ref Image
     pub fn rmse(&self, ref_img: &Image) -> f32 {
 
-        let size = self.width * self.height;
-
         let mut rgb = self.data.chunks(3).zip(ref_img.data.chunks(3));
 
         let mut mse: f32 = 0.0;
         let mut max_r: f32 = -1.0;
 
-        for _ in 0..self.height {
-            for _ in 0..self.width {
+        for _ in 0..self.size() {
+            let (img, reference) = rgb.next().unwrap();
 
-                let (img, reference) = rgb.next().unwrap();
+            let yi = Self::y_val(img);
+            let yr = Self::y_val(reference);
 
-                let yi = Self::y_val(img);
-                let yr = Self::y_val(reference);
+            let sqdiff = (yi - yr).powf(2.0);
 
-                let sqdiff = (yi - yr).powf(2.0);
-
-                mse += sqdiff;
-
-                max_r = max_r.max(yr);
-            }
+            mse += sqdiff;
+            max_r = max_r.max(yr);
         }
 
-        mse /= size as f32;
+        mse /= self.size() as f32;
 
         let rmse = mse.sqrt();
 
