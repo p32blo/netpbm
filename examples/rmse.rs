@@ -54,21 +54,22 @@ fn main() {
     let args = matches.free;
 
     if let 2 = args.len() {
-        let img = match Image::open(&args[0]) {
-            Ok(img) => img,
-            Err(e) => {
-                handle_error(e, &args[0]);
-                return;
-            }
-        };
-
-        match img.rmse(&args[1]) {
+        match rmse(&args[0], &args[1]) {
             Ok(val) => println!("RMSE: {}", val),
-            Err(e) => handle_error(e, &args[1]),
+            Err(message) => println!("{}", message),
         }
+
     } else {
         println!("error: Wrong number or arguments!");
     }
+}
+
+fn rmse(ref_img: &str, img: &str) -> Result<f32, String> {
+
+    let ref_img = Image::open(ref_img).map_err(|e| handle_error(e, ref_img))?;
+    let img = Image::open(img).map_err(|e| handle_error(e, img))?;
+
+    Ok(ref_img.rmse(&img))
 }
 
 fn help() {
@@ -79,9 +80,11 @@ fn help() {
                      "    -h, --help          Show this help menu\n"));
 }
 
-fn handle_error(e: io::Error, arg: &str) {
+fn handle_error(e: io::Error, arg: &str) -> String {
     match e.kind() {
-        io::ErrorKind::InvalidData => println!("warn: file '{}' is not a netpbm file", arg),
-        _ => println!("warn: file '{}' does not exist", arg),
+        io::ErrorKind::InvalidData => {
+            format!("warn: file '{}' is not a netpbm file", arg).to_string()
+        }
+        _ => format!("warn: file '{}' does not exist", arg).to_string(),
     }
 }

@@ -227,7 +227,7 @@ impl Image {
 
 
     /// Calculate the RMSE of an image in relation to a ref Image
-    pub fn rmse(&self, ref_img: &Image) -> io::Result<f32> {
+    pub fn rmse(&self, ref_img: &Image) -> f32 {
 
         let size = self.width * self.height;
 
@@ -256,6 +256,6 @@ impl Image {
 
         let rmse = mse.sqrt();
 
-        Ok(rmse)
+        rmse
     }
 }
