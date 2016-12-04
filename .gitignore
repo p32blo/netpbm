@@ -1,5 +1,10 @@
-#folders
+# Folders
 target
 
-#extensions
+# File Extensions
 *.pfm
+*.ppm
+*.hdr
+*.exr
+*.jpg
+*.info
