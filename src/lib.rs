@@ -120,36 +120,39 @@ impl Image {
     }
 
     fn load_metadata<R: BufRead + Seek>(&mut self, content: &mut R) -> io::Result<()> {
-        let mut line = String::new();
-        content.read_line(&mut line)?;
 
-        self.iters = if line.starts_with("#>") {
-            line.split_whitespace().nth(1).unwrap().parse().expect("Metadata is missing")
-        } else {
-            content.seek(SeekFrom::Start(0))?;
-            1
-        };
+        let mut iters = 1;
 
-        let mut lines = content.lines()
-            .map(|l| l.unwrap())
-            .filter(|l| !l.starts_with("#"))
-            .flat_map(|line| {
-                line.split_whitespace()
-                    .map(|w| w.to_string())
-                    .collect::<Vec<_>>()
-                    .into_iter()
-            });
+        {
+            let mut lines = content.lines()
+                .map(|l| l.unwrap())
+                .filter(|l| {
+                    if l.starts_with("#>") {
+                        iters = l.split_whitespace().nth(1).unwrap().parse().unwrap_or(1);
+                    }
+                    !l.starts_with("#")
+                })
+                .flat_map(|line| {
+                    line.split_whitespace()
+                        .map(|w| w.to_string())
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                });
 
-        if let Some(val) = lines.next() {
-            if val != "PF" {
-                return Err(Error::new(ErrorKind::InvalidData, "File does not contain 'PF' tag"));
+            if let Some(val) = lines.next() {
+                if val != "PF" {
+                    return Err(Error::new(ErrorKind::InvalidData,
+                                          "File does not contain 'PF' tag"));
+                }
             }
+
+
+
+            self.width = lines.next().unwrap().parse().expect("Metadata is missing");
+            self.height = lines.next().unwrap().parse().expect("Metadata is missing");
+            self.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
         }
-
-        self.width = lines.next().unwrap().parse().expect("Metadata is missing");
-        self.height = lines.next().unwrap().parse().expect("Metadata is missing");
-        self.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
-
+        self.iters = iters;
         Ok(())
     }
 
@@ -191,16 +194,14 @@ impl Image {
     }
 
     fn store_metadata<W: Write>(&self, handle: &mut W) -> io::Result<()> {
-
-        write!(handle, "#> {}\n", self.iters)?;
-
         let ratio = if cfg!(target_endian = "little") {
             -self.ratio.abs()
         } else {
             self.ratio.abs()
         };
-
-        write!(handle, "PF\n{} {} {}\n", self.width, self.height, ratio)?;
+        writeln!(handle, "PF")?;
+        writeln!(handle, "#> {}", self.iters)?;
+        writeln!(handle, "{} {} {}", self.width, self.height, ratio)?;
         Ok(())
     }
 
