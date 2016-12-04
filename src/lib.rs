@@ -126,12 +126,12 @@ impl Image {
         {
             let mut lines = content.lines()
                 .map(|l| l.unwrap())
-                .filter(|l| {
+                .inspect(|l| {
                     if l.starts_with("#>") {
                         iters = l.split_whitespace().nth(1).unwrap().parse().unwrap_or(1);
                     }
-                    !l.starts_with("#")
                 })
+                .filter(|l| !l.starts_with("#"))
                 .flat_map(|line| {
                     line.split_whitespace()
                         .map(|w| w.to_string())
@@ -146,13 +146,12 @@ impl Image {
                 }
             }
 
-
-
             self.width = lines.next().unwrap().parse().expect("Metadata is missing");
             self.height = lines.next().unwrap().parse().expect("Metadata is missing");
             self.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
         }
         self.iters = iters;
+
         Ok(())
     }
 
