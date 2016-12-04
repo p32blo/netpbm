@@ -68,11 +68,14 @@ impl AddAssign for Image {
         if self.is_empty() {
             *self = other;
         } else {
+            let total_iters = self.iters + other.iters;
+
             for (data, &val) in self.data.iter_mut().zip(other.data.iter()) {
                 *data *= self.iters as f32;
                 *data += val * other.iters as f32;
+                *data /= total_iters as f32;
             }
-            self.iters += other.iters;
+            self.iters = total_iters;
         }
     }
 }
