@@ -202,7 +202,7 @@ impl Image {
         };
         writeln!(handle, "PF")?;
         writeln!(handle, "#> {}", self.iters)?;
-        writeln!(handle, "{} {} {}", self.width, self.height, ratio)?;
+        writeln!(handle, "{} {} {:.1}", self.width, self.height, ratio)?;
         Ok(())
     }
 
