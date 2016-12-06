@@ -32,7 +32,6 @@ use std::path::Path;
 use std::fs::File;
 
 use std::io;
-use std::io::{Seek, SeekFrom};
 use std::io::{Read, BufRead, BufReader};
 use std::io::{Write, BufWriter};
 use std::io::{Error, ErrorKind};
@@ -122,7 +121,7 @@ impl Image {
         self.ratio.is_sign_positive()
     }
 
-    fn load_metadata<R: BufRead + Seek>(&mut self, content: &mut R) -> io::Result<()> {
+    fn load_metadata<R: BufRead>(&mut self, content: &mut R) -> io::Result<()> {
 
         let mut iters = 1;
 
