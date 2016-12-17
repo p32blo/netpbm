@@ -124,7 +124,6 @@ impl Image {
     fn load_metadata<R: BufRead>(&mut self, content: &mut R) -> io::Result<()> {
 
         let mut iters = 1;
-
         {
             let mut lines = content.lines()
                 .map(|l| l.unwrap())
@@ -133,7 +132,7 @@ impl Image {
                         iters = l.split_whitespace().nth(1).unwrap().parse().unwrap_or(1);
                     }
                 })
-                .filter(|l| !l.starts_with("#"))
+                .filter(|l| !l.starts_with('#'))
                 .flat_map(|line| {
                     line.split_whitespace()
                         .map(|w| w.to_string())
@@ -153,7 +152,6 @@ impl Image {
             self.ratio = lines.next().unwrap().parse().expect("Metadata is missing");
         }
         self.iters = iters;
-
         Ok(())
     }
 
@@ -253,7 +251,7 @@ impl Image {
         }
         mse /= self.size() as f32;
 
-        let rmse = mse.sqrt();
-        rmse
+        // RMSE
+        mse.sqrt()
     }
 }
