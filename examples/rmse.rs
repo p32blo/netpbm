@@ -53,12 +53,14 @@ fn main() {
 
     let args = matches.free;
 
-    if let 2 = args.len() {
-        match rmse(&args[0], &args[1]) {
-            Ok(val) => println!("RMSE: {}", val),
-            Err(message) => println!("{}", message),
-        }
-
+    if args.len() >= 2 {
+		let refer = &args[0];
+		for arg in &args[1..] {
+			match rmse(refer, arg) {
+				Ok(val) => println!("{}: RMSE = {}", arg, val),
+				Err(message) => println!("{} -> {}", arg, message),
+			}
+		}
     } else {
         println!("error: Wrong number or arguments!");
     }
