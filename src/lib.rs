@@ -22,8 +22,8 @@
 
 extern crate byteorder;
 
-use byteorder::{NativeEndian, LittleEndian, BigEndian};
-use byteorder::{WriteBytesExt, ReadBytesExt};
+use byteorder::{BigEndian, LittleEndian, NativeEndian};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use std::fmt;
 use std::ops::AddAssign;
@@ -32,10 +32,9 @@ use std::path::Path;
 use std::fs::File;
 
 use std::io;
-use std::io::{Read, BufRead, BufReader};
-use std::io::{Write, BufWriter};
+use std::io::{BufRead, BufReader, Read};
+use std::io::{BufWriter, Write};
 use std::io::{Error, ErrorKind};
-
 
 /// The main structure of this crate
 #[derive(Debug, Clone)]
@@ -54,11 +53,11 @@ pub struct Image {
 
 impl fmt::Display for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "[ {} x {} ] iters = {}",
-               self.width,
-               self.height,
-               self.iters)
+        write!(
+            f,
+            "[ {} x {} ] iters = {}",
+            self.width, self.height, self.iters
+        )
     }
 }
 
@@ -122,10 +121,10 @@ impl Image {
     }
 
     fn load_metadata<R: BufRead>(&mut self, content: &mut R) -> io::Result<()> {
-
         let mut iters = 1;
         {
-            let mut lines = content.lines()
+            let mut lines = content
+                .lines()
                 .map(|l| l.unwrap())
                 .inspect(|l| {
                     if l.starts_with("#>") {
@@ -142,8 +141,10 @@ impl Image {
 
             if let Some(val) = lines.next() {
                 if val != "PF" {
-                    return Err(Error::new(ErrorKind::InvalidData,
-                                          "File does not contain 'PF' tag"));
+                    return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "File does not contain 'PF' tag",
+                    ));
                 }
             }
 
@@ -156,7 +157,6 @@ impl Image {
     }
 
     fn load_data<R: Read>(&mut self, f: &mut R) -> io::Result<()> {
-
         self.data.clear();
 
         let img_rgb_size = self.size() * 3;
@@ -182,7 +182,6 @@ impl Image {
     /// - The values of a loaded image are multiplied
     /// by its number of iterations
     pub fn open<P: AsRef<Path>>(filename: P) -> io::Result<Self> {
-
         let mut image = Image::default();
 
         let mut f = BufReader::new(File::open(filename)?);
@@ -218,7 +217,6 @@ impl Image {
     /// - All values are devided by `self.iters` to mantain the values
     /// in the `0` to `self.ratio` range.
     pub fn save(&self, filename: &str) -> io::Result<()> {
-
         let mut file = BufWriter::new(File::create(filename)?);
 
         self.store_metadata(&mut file)?;
@@ -232,15 +230,12 @@ impl Image {
         0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
     }
 
-
     /// Calculate the RMSE of an image in relation to a ref Image
     pub fn rmse(&self, img: &Image) -> f32 {
-
         let mut mse: f32 = 0.0;
         let mut max_r: f32 = -1.0;
 
         for (rgb_img, rgb_ref) in self.data.chunks(3).zip(img.data.chunks(3)) {
-
             let yi = Self::luminance(rgb_img);
             let yr = Self::luminance(rgb_ref);
 

@@ -25,8 +25,8 @@
 //! ```
 //!
 
-extern crate netpbm;
 extern crate getopts;
+extern crate netpbm;
 
 use netpbm::Image;
 
@@ -34,7 +34,6 @@ use std::env;
 use std::io;
 
 fn main() {
-
     // Argument Parsing
 
     let mut opts = getopts::Options::new();
@@ -89,12 +88,14 @@ fn main() {
 }
 
 fn help() {
-    println!(concat!("Usage: merge [-o FILE] [-v] [-h] file [file ...]\n",
-                     "\n",
-                     "Options:\n",
-                     "    -o, --output FILE   Set custom Output filename\n",
-                     "    -v, --version       Show app version\n",
-                     "    -h, --help          Show this help menu\n"));
+    println!(concat!(
+        "Usage: merge [-o FILE] [-v] [-h] file [file ...]\n",
+        "\n",
+        "Options:\n",
+        "    -o, --output FILE   Set custom Output filename\n",
+        "    -v, --version       Show app version\n",
+        "    -h, --help          Show this help menu\n"
+    ));
 }
 
 fn handle_error(e: io::Error, arg: &str) {
